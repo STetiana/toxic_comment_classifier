@@ -1,0 +1,88 @@
+# ================================
+# Python cache / bytecode
+# ================================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ================================
+# Virtual environments
+# ================================
+ml/
+venv/
+env/
+ENV/
+.venv/
+
+# ================================
+# Distribution / packaging
+# ================================
+build/
+dist/
+*.egg-info/
+.eggs/
+*.whl
+
+# ================================
+# Jupyter notebooks
+# ================================
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ================================
+# TensorFlow / ML outputs
+# ================================
+saved_model/
+checkpoint
+*.ckpt
+*.ckpt.index
+*.ckpt.data-*
+logs/
+*.keras
+
+# ================================
+# Model weights & tokenizer files
+# ================================
+*.safetensors
+*.h5
+*.hdf5
+config.json
+tokenizer.json
+tokenizer_config.json
+special_tokens_map.json
+added_tokens.json
+vocab.txt
+
+# ================================
+# Data files
+# ================================
+train.csv
+test.csv
+submission_bert.csv
+submission_SVC.csv
+submission_tf.csv
+*.tsv
+*.npy
+*.npz
+
+# Keep sample submission as format reference
+!sample_submission.csv
+
+# ================================
+# Generated outputs
+# ================================
+output.png
+*.pdf
+
+# ================================
+# VS Code
+# ================================
+.vscode/
+
+# ================================
+# OS / editor files
+# ================================
+.DS_Store
+*.swp
+*.swo
+Thumbs.db
