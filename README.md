@@ -1,26 +1,41 @@
-# Toxic Language Classifier
+# Toxic Comment Classifier
 
-Multi-label toxic comment classifier built with three approaches: BERT (PyTorch), LinearSVC (scikit-learn), and Bidirectional LSTM (TensorFlow).
+Toxic language detection is harder than it looks. Sarcasm, coded 
+language, and context-dependence make it one of the more genuinely 
+difficult text classification problems in NLP — even state-of-the-art 
+models struggle with rare categories like `threat` and `identity_hate`.
 
-## Problem
+I benchmarked three approaches of increasing complexity on the 
+[Jigsaw Toxic Comment Classification](https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge) 
+dataset to see how much difference model complexity actually makes.
 
-Automatically detect toxic comments across 6 categories simultaneously. Each comment can belong to multiple categories at once (multi-label classification).
+---
 
-**Labels:** `toxic` · `severe_toxic` · `obscene` · `threat` · `insult` · `identity_hate`
+## Results
 
-**Evaluation metric:** Mean column-wise ROC AUC (average of individual AUCs per label)
+| # | Model | Public AUC | Private AUC |
+|---|-------|:----------:|:-----------:|
+| 🥇 | BERT (`bert-base-uncased`) | **0.931** | **0.928** |
+| 🥈 | Bidirectional LSTM | 0.828 | 0.810 |
+| 🥉 | LinearSVC + TF-IDF | 0.747 | 0.740 |
 
-## Dataset
+BERT wins by a meaningful margin, but the BiLSTM puts up a strong 
+result for a model trained from scratch in ~4 minutes per epoch.
 
-| Property | Value |
-|----------|-------|
-| Total comments | 159,571 |
-| Missing values | None |
-| Duplicate entries | None |
-| Class balance | Imbalanced — ~9.6% toxic |
+---
 
-| Label | Count | % |
-|-------|-------|---|
+## The Problem
+
+Each comment can belong to multiple toxicity categories simultaneously 
+(multi-label classification across 6 labels):
+
+`toxic` · `severe_toxic` · `obscene` · `threat` · `insult` · `identity_hate`
+
+The dataset is heavily imbalanced — only 9.6% of comments are toxic 
+at all, and some categories are extremely rare:
+
+| Label | Count | % of dataset |
+|-------|-------|:------------:|
 | toxic | 15,294 | 9.58% |
 | obscene | 8,449 | 5.29% |
 | insult | 7,877 | 4.94% |
@@ -28,64 +43,50 @@ Automatically detect toxic comments across 6 categories simultaneously. Each com
 | identity_hate | 1,405 | 0.88% |
 | threat | 478 | 0.30% |
 
-## Kaggle Results (Mean Column-Wise ROC AUC)
+This imbalance is the central challenge. A model predicting "not toxic" 
+for everything would still hit ~90% accuracy.
 
-| # | Model | Public Score | Private Score |
-|---|-------|:------------:|:-------------:|
-| 🥇 | **BERT** (PyTorch) | **0.93062** | **0.92755** |
-| 🥈 | **BiLSTM** (TensorFlow) | **0.82839** | **0.80964** |
-| 🥉 | **LinearSVC** (scikit-learn) | **0.74718** | **0.74032** |
+---
 
 ## Models
 
-### 1. BERT (PyTorch) — best model
-- `bert-base-uncased` fine-tuned with a 6-label classification head
-- Tokenizer: `AutoTokenizer`, max length 128
-- Loss: `BCEWithLogitsLoss` with per-label positive weights
-- Optimizer: AdamW, lr=2e-5, batch size=8
-- Split: 70/20/10 — trained for 5 epochs (loss: 0.355 → 0.177)
+### 1. BERT — PyTorch + Hugging Face
+`bert-base-uncased` fine-tuned with a 6-label classification head.
 
-### 2. Bidirectional LSTM (TensorFlow)
-- `TextVectorization(20k vocab, 200 tokens)` → `Embedding(128d)` → `Bi-LSTM(64)` → `Dense(6, sigmoid)`
-- Loss: `binary_crossentropy` with per-sample class weights (range: 1.0–325.6)
-- Optimizer: Adam, batch size=64
-- Split: 70/15/15 — early stopped at epoch 3 (val AUC: 0.966)
-- GPU: NVIDIA GeForce RTX 3060 Laptop
+- Tokenizer: `AutoTokenizer`, max length 128  
+- Loss: `BCEWithLogitsLoss` with per-label positive weights  
+- Optimizer: AdamW, lr=2e-5, batch size=8  
+- 5 epochs (training loss: 0.355 → 0.177)
 
-### 3. LinearSVC (scikit-learn)
-- Pipeline: `TfidfVectorizer` → `OneVsRestClassifier(LinearSVC)`
-- Split: 80/20
-- Three classifiers compared: Naive Bayes (F1=0.22), Logistic Regression (F1=0.67), **LinearSVC (F1=0.72)**
+### 2. Bidirectional LSTM — TensorFlow / Keras
+Built from scratch — no pretrained weights, surprisingly competitive.
 
-## Project Structure
+- Architecture: `TextVectorization` (20k vocab) → `Embedding` (128d) → `BiLSTM` (64) → `Dense` (6, sigmoid)  
+- Loss: `binary_crossentropy` with per-sample class weights (range: 1.0–325.6)  
+- Early stopped at epoch 3 (val AUC: 0.966)  
+- Trained on: NVIDIA GeForce RTX 3060 Laptop
 
-```
-toxic_classifier/
-├── toxic_language_classifier.ipynb   # main notebook
-├── train.csv                         # training data
-├── test.csv                          # test data
-├── sample_submission.csv             # submission format
-├── submission_bert.csv               # BERT predictions  (ROC AUC: 0.931)
-├── submission_tf.csv                 # TF BiLSTM predictions (ROC AUC: 0.828)
-├── submission_SVC.csv                # SVC predictions   (ROC AUC: 0.747)
-├── model.safetensors                 # saved BERT weights
-├── config.json                       # BERT model config
-├── tokenizer.json                    # BERT tokenizer
-├── vocab.txt                         # BERT vocabulary
-└── tokenizer_config.json
-```
+### 3. LinearSVC — scikit-learn
+The baseline. Fast, interpretable, and more competitive than you'd expect 
+for a bag-of-words approach. I compared three classifiers before settling on it:
 
-## Setup
+| Classifier | F1 |
+|---|:---:|
+| Naive Bayes | 0.22 |
+| Logistic Regression | 0.67 |
+| **LinearSVC** | **0.72** |
 
-```bash
-pip install tensorflow[and-cuda] pandas matplotlib seaborn scikit-learn wordcloud
-pip install torch transformers
-```
+---
 
 ## Key Findings
 
-1. **BERT achieved the best Kaggle score (public ROC AUC 0.931)** — deep contextual understanding gives it a strong advantage over simpler models
-2. **TF BiLSTM ranked second (0.828)** — strong result for a model trained in ~4 minutes per epoch with no pretrained weights
-3. **LinearSVC ranked third (0.747)** — fastest to train but TF-IDF lacks the semantic depth of neural approaches
-4. **`threat` and `identity_hate`** are the hardest labels across all models — fewest samples (478 and 1,405) and lowest F1 in every approach
-5. **Class imbalance** is the central challenge — all models used weighting strategies, yet rare labels remain difficult
+- **BERT's contextual understanding gives it a clear edge** — it learns 
+that the same word can be toxic or benign depending on context, something 
+TF-IDF fundamentally can't capture.
+- **The BiLSTM is surprisingly strong** for a model with no pretrained 
+knowledge — sequential context matters even without transformers.
+- **`threat` and `identity_hate` were hard for every model** — with only 
+478 and 1,405 examples respectively, there isn't enough signal. This is 
+a data problem as much as a modelling problem.
+- **Accuracy is the wrong metric here** — all models score high on accuracy 
+due to class imbalance. AUC and F1 per label tell the real story.
