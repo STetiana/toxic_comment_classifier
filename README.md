@@ -64,7 +64,6 @@ Built from scratch — no pretrained weights, surprisingly competitive.
 - Architecture: `TextVectorization` (20k vocab) → `Embedding` (128d) → `BiLSTM` (64) → `Dense` (6, sigmoid)  
 - Loss: `binary_crossentropy` with per-sample class weights (range: 1.0–325.6)  
 - Early stopped at epoch 3 (val AUC: 0.966)  
-- Trained on: NVIDIA GeForce RTX 3060 Laptop
 
 ### 3. LinearSVC — scikit-learn
 The baseline. Fast, interpretable, and more competitive than you'd expect 
